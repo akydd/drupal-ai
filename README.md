@@ -1,43 +1,41 @@
 # Drupal AI
 
-A Drupal 11 project running in Docker, pre-configured and ready to start.
+A Drupal 11 project, pre-configured and ready to start.
 
 ## Requirements
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [DDEV](https://ddev.com/get-started/)
 
 ## Quick start
 
 ```bash
 git clone <repo-url>
 cd drupal-ai
-docker compose up -d
+ddev start
+ddev import-db --file=db-init/init.sql.gz
+ddev launch
 ```
 
-Then open [http://localhost:8080](http://localhost:8080) in your browser.
-
-The database is seeded automatically on first startup — no installer steps required.
+Log in with **admin / admin**.
 
 ## Stopping the project
 
 ```bash
-docker compose down
+ddev stop
 ```
 
 ## Resetting to a clean state
 
-If you need to wipe the database and start fresh:
-
 ```bash
-docker compose down -v
-docker compose up -d
+ddev delete -O
+ddev start
+ddev import-db --file=db-init/init.sql.gz
 ```
-
-The `-v` flag removes the database volume so it will be re-seeded from `db-init/init.sql` on next startup.
 
 ## Services
 
-| Service | URL / Port |
+| Service | URL |
 |---|---|
-| Drupal | http://localhost:8080 |
-| PostgreSQL | localhost:5432 |
+| Drupal | https://drupal-ai.ddev.site |
+| Mailpit | https://drupal-ai.ddev.site:8026 |

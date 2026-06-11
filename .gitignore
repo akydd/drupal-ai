@@ -1,7 +1,5 @@
-# Docker project overrides
+# Local overrides
 compose.yaml~
-sites/default/files/*
-!sites/default/files/.gitkeep
 
 # gitignore template for Drupal 8 projects
 #
@@ -68,3 +66,5 @@ sites/default/files/*
 /drush
 /drupal.phar
 /drupal
+/.editorconfig
+/.gitattributes
