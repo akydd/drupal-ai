@@ -1,3 +1,8 @@
+# Docker project overrides
+compose.yaml~
+sites/default/files/*
+!sites/default/files/.gitkeep
+
 # gitignore template for Drupal 8 projects
 #
 # earlier versions of Drupal are tracked in `community/PHP/`
