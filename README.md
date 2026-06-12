@@ -224,6 +224,75 @@ ddev exec drush cr
 
 Visit `https://drupal-ai.ddev.site/webform/service_request`, submit a request, and verify you are redirected to the result page.
 
+### Debugging AI API calls
+
+**Check the Drupal watchdog logs first.** The handler logs all API failures to the `service_intake` channel:
+
+```bash
+ddev exec drush watchdog:show --count=20 --severity=Error
+```
+
+**Symptom: form submits but result fields are all empty**
+
+The handler caught an exception silently. Check the logs for a `Claude API call failed:` entry. Common causes:
+
+- `Syntax error` — Claude returned markdown-wrapped JSON (` ```json ... ``` `) instead of raw JSON. The handler strips code fences defensively, but if the prompt changes and wrapping reappears this is the first thing to check. Log `$raw` before `json_decode` to inspect the raw response.
+- `No AI provider available` — the default chat provider isn't configured. Go to **Admin → Configuration → AI → Providers** and verify Anthropic is set as the default for the *Chat* operation type.
+
+**Symptom: `ServiceNotFoundException` for `plugin.manager.ai.provider`**
+
+Wrong service name. The correct service is `ai.provider`.
+
+**Symptom: result fields exist on the submission but are empty after the handler runs**
+
+`setElementData()` silently discards values for fields that don't exist on the webform. Make sure all four hidden fields (`ministry`, `next_steps`, `confidence`, `needs_review`) are defined on the webform in the form builder.
+
+**Inspecting the raw Claude response**
+
+Add a temporary log line before `json_decode` to see exactly what Claude is returning:
+
+```php
+\Drupal::logger('service_intake')->debug('Raw response: @raw', ['@raw' => $raw]);
+```
+
+Then tail the logs:
+
+```bash
+ddev exec drush watchdog:show --count=5 --type=service_intake
+```
+
+Remove the debug log line before committing.
+
+**Checking the API key is available**
+
+```bash
+ddev exec drush eval "echo getenv('ANTHROPIC_API_KEY');"
+```
+
+If this returns empty, the key isn't in the environment — check `.ddev/config.local.yaml` and run `ddev restart`.
+
+### Unit testing this module
+
+Unit testing the `IntakeClassifierHandler` turned out to be disproportionately difficult relative to the size of the module. Here is why, for context.
+
+**Drupal's module system is outside Composer's autoloader.**
+Drupal loads modules at runtime through its own plugin and module discovery system. When running PHPUnit outside of a full Drupal bootstrap, none of the module classes — including core modules, contrib modules, and your own custom module — are on the Composer autoloader. Every namespace (`Drupal\webform`, `Drupal\ai`, `Drupal\service_intake`, and several `Drupal\Core\*` sub-namespaces) had to be registered manually in a custom `tests/bootstrap.php`.
+
+**`AiProviderPluginManager` is `final`.**
+PHPUnit's mocking system works by generating a subclass of the target. Final classes cannot be subclassed, so `$this->createMock(AiProviderPluginManager::class)` throws an error. The workaround is to write a handcrafted anonymous class that implements the same interface — which works, but adds significant boilerplate.
+
+**The AI provider uses `__call()` magic.**
+The actual provider object returned at runtime is `ProviderProxy`, which delegates all method calls via PHP's `__call()` magic method. PHPUnit cannot intercept magic calls through its mock builder. Again, a hand-written anonymous class with a real `chat()` method was required.
+
+**Drupal's service container must be bootstrapped manually.**
+`WebformHandlerBase` (the parent class) calls `\Drupal::logger()` internally, which tries to access the global Drupal service container. Outside a full Drupal bootstrap the container is uninitialised and throws `ContainerNotInitializedException`. Each test class needed a `setUp()` that built a minimal `Symfony\Component\DependencyInjection\Container`, wired a mock logger factory into it, and called `\Drupal::setContainer()`.
+
+**`core-dev` introduced dependency conflicts.**
+Installing `drupal/core-dev` (which provides PHPUnit and related test utilities) pulled in `drupal/coder ^9.0` and `squizlabs/php_codesniffer ^4.0`, both of which conflicted with other packages already in the project. Resolving this required downgrading both tools in `require-dev`.
+
+**Why the tests were removed.**
+After working through all of the above, the resulting tests covered a narrow slice of logic (the fence-stripping regex and the confidence threshold branch). The overhead of maintaining the bespoke bootstrap and anonymous-class fakes was not proportionate to the coverage gained for a portfolio demonstration. For a production project the right approach is to run tests inside DDEV against a properly bootstrapped Drupal environment using `ddev exec vendor/bin/phpunit`, which gives access to the full kernel test infrastructure and eliminates most of these problems.
+
 ### Exporting changes
 
 After any content or config change you want to preserve:

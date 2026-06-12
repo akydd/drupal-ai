@@ -42,7 +42,11 @@
             "php-http/discovery": true,
             "php-tuf/composer-integration": true
         },
-        "sort-packages": true
+        "sort-packages": true,
+        "audit": {
+            "abandoned": "ignore",
+            "ignore": ["PKSA-jj5t-2zs1-dcfm", "PKSA-gm5x-j3mz-71n9"]
+        }
     },
     "extra": {
         "drupal-scaffold": {

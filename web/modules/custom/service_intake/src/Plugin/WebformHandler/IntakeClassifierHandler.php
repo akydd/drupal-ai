@@ -29,7 +29,7 @@ class IntakeClassifierHandler extends WebformHandlerBase {
    *
    * @var \Drupal\ai\AiProviderPluginManager
    */
-  protected AiProviderPluginManager $aiProvider;
+  protected $aiProvider;
 
   /**
    * {@inheritdoc}
@@ -99,12 +99,7 @@ PROMPT;
         new ChatMessage('user', $request_text),
       ]);
       $raw = $provider->chat($messages, $default['model_id'])->getNormalized()->getText();
-
-      // Strip markdown code fences if Claude includes them despite instructions.
-      $raw = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
-      $raw = preg_replace('/\s*```$/', '', $raw);
-
-      $result = json_decode($raw, FALSE, 512, JSON_THROW_ON_ERROR);
+      $result = json_decode(self::stripMarkdownFences($raw), FALSE, 512, JSON_THROW_ON_ERROR);
     }
     catch (\Exception $e) {
       \Drupal::logger('service_intake')->error('Claude API call failed: @message', ['@message' => $e->getMessage()]);
@@ -114,13 +109,18 @@ PROMPT;
       return;
     }
 
-    $flagged = ($result->confidence < $threshold);
+    $flagged = $result->confidence < $threshold;
 
     $webform_submission->setElementData('ministry', $result->ministry);
     $webform_submission->setElementData('next_steps', $result->next_steps);
     $webform_submission->setElementData('confidence', $result->confidence);
     $webform_submission->setElementData('needs_review', $flagged);
     $webform_submission->resave();
+  }
+
+  protected static function stripMarkdownFences(string $raw): string {
+    $raw = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
+    return preg_replace('/\s*```$/', '', $raw);
   }
 
 }
