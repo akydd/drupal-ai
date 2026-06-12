@@ -1,0 +1,7 @@
+name: 'Service Intake'
+type: module
+core_version_requirement: ^11
+description: 'Accepts  plain-language service requests, classifies them to the correct ministry using Claude, generates next-step summaries, and routes results based on a confidence score.'
+dependencies:
+  - drupal:webform
+  - ai:ai

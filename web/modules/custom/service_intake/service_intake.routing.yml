@@ -1,0 +1,8 @@
+service_intake.result:
+  path: '/intake/result/{sid}'
+  defaults:
+    _controller: '\Drupal\service_intake\Controller\IntakeResultController::result'
+    _title: 'Your Service Request'
+  requirements:
+    _permission: 'access content'
+    sid: \d+

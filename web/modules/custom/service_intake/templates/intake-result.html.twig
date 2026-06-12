@@ -1,0 +1,32 @@
+<div class="intake-result">
+
+{% if flagged %}
+
+   <div class="intake-result--flagged">
+     <h2>{{ 'Your request is under review' | t }}>/h2>
+     <p>{{ 'We were not able to automatically route your request. A staff member will review it and follow up with you shortly.'|t }}</p>
+  </div>
+
+{% else %}
+
+  <div class="intake-result--routed">
+    <h2>{{ 'Your request has been received'|t }}</h2>
+
+    <p>
+      {{ 'Your request has been directed to:'|t }}
+      <strong>{{ ministry }}</strong>
+    </p>
+
+    <h3>{{ 'Suggested next steps'|t }}</h3>
+    <p>{{ next_steps }}</p>
+  </div>
+
+{% endif %}
+
+{% if confidence is not null %}
+  <p class="intake-result__confidence">
+    {{ 'Confidence score: @score'|t({'@score': (confidence * 100)|round ~ '%'}) }}
+  </p>
+{% endif %}
+
+</div>

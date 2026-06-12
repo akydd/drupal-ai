@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Theme hook implementations for the service intake module.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function service_intake_theme(): array {
+  return [
+    'intake_result' => [
+      'variables' => [
+        'ministry'   => NULL,
+        'next_steps' => NULL,
+        'confidence' => NULL,
+        'flagged'    => FALSE,
+      ],
+    ],
+  ];
+}

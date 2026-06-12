@@ -68,3 +68,5 @@ compose.yaml~
 /drupal
 /.editorconfig
 /.gitattributes
+
+.DS_Store
