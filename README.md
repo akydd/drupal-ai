@@ -273,25 +273,28 @@ If this returns empty, the key isn't in the environment — check `.ddev/config.
 
 ### Unit testing this module
 
-Unit testing the `IntakeClassifierHandler` turned out to be disproportionately difficult relative to the size of the module. Here is why, for context.
+The core classification logic lives in `IntakeService`, which has no Drupal dependencies whatsoever — no base classes, no service container, no `\Drupal::*` calls. This makes it straightforwardly testable with plain PHPUnit and no Drupal bootstrap.
 
-**Drupal's module system is outside Composer's autoloader.**
-Drupal loads modules at runtime through its own plugin and module discovery system. When running PHPUnit outside of a full Drupal bootstrap, none of the module classes — including core modules, contrib modules, and your own custom module — are on the Composer autoloader. Every namespace (`Drupal\webform`, `Drupal\ai`, `Drupal\service_intake`, and several `Drupal\Core\*` sub-namespaces) had to be registered manually in a custom `tests/bootstrap.php`.
+**Running the tests:**
 
-**`AiProviderPluginManager` is `final`.**
-PHPUnit's mocking system works by generating a subclass of the target. Final classes cannot be subclassed, so `$this->createMock(AiProviderPluginManager::class)` throws an error. The workaround is to write a handcrafted anonymous class that implements the same interface — which works, but adds significant boilerplate.
+```bash
+vendor/bin/phpunit --testdox
+```
 
-**The AI provider uses `__call()` magic.**
-The actual provider object returned at runtime is `ProviderProxy`, which delegates all method calls via PHP's `__call()` magic method. PHPUnit cannot intercept magic calls through its mock builder. Again, a hand-written anonymous class with a real `chat()` method was required.
+The test suite covers `parseResponse()` (valid JSON, markdown fence stripping, missing fields, malformed input) and `applyThreshold()` (boundary conditions, error payloads).
 
-**Drupal's service container must be bootstrapped manually.**
-`WebformHandlerBase` (the parent class) calls `\Drupal::logger()` internally, which tries to access the global Drupal service container. Outside a full Drupal bootstrap the container is uninitialised and throws `ContainerNotInitializedException`. Each test class needed a `setUp()` that built a minimal `Symfony\Component\DependencyInjection\Container`, wired a mock logger factory into it, and called `\Drupal::setContainer()`.
+**Why no bootstrap is needed.**
+The `Drupal\service_intake\` namespace is registered directly in `composer.json` under `autoload.psr-4`, so it is part of the normal Composer autoloader. PHPUnit finds the class without any custom bootstrap file.
 
-**`core-dev` introduced dependency conflicts.**
-Installing `drupal/core-dev` (which provides PHPUnit and related test utilities) pulled in `drupal/coder ^9.0` and `squizlabs/php_codesniffer ^4.0`, both of which conflicted with other packages already in the project. Resolving this required downgrading both tools in `require-dev`.
+**Why the handler is not unit tested.**
+`IntakeClassifierHandler` is intentionally excluded from the unit test suite because it is pure Drupal wiring — it extends `WebformHandlerBase`, depends on `AiProviderPluginManager` (which is `final` and cannot be mocked), and uses the Drupal service container. Testing it in isolation requires a full Drupal bootstrap or significant boilerplate. The appropriate tests for the handler are Drupal kernel tests, run inside DDEV:
 
-**Why the tests were removed.**
-After working through all of the above, the resulting tests covered a narrow slice of logic (the fence-stripping regex and the confidence threshold branch). The overhead of maintaining the bespoke bootstrap and anonymous-class fakes was not proportionate to the coverage gained for a portfolio demonstration. For a production project the right approach is to run tests inside DDEV against a properly bootstrapped Drupal environment using `ddev exec vendor/bin/phpunit`, which gives access to the full kernel test infrastructure and eliminates most of these problems.
+```bash
+ddev exec vendor/bin/phpunit --group service_intake
+```
+
+**The design decision behind this split.**
+Keeping all business logic in `IntakeService` and all Drupal wiring in the handler is what makes the unit tests possible at all. If the AI call, JSON parsing, and threshold logic had stayed inside the handler (as is common in simpler Drupal modules), none of it would be unit-testable without a full Drupal environment.
 
 ### Exporting changes
 

@@ -14,6 +14,16 @@
             "url": "https://packages.drupal.org/8"
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "Drupal\\service_intake\\": "web/modules/custom/service_intake/src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Drupal\\Tests\\service_intake\\": "web/modules/custom/service_intake/tests/src/"
+        }
+    },
     "require": {
         "composer/installers": "^2.3",
         "drupal/ai": "^1.4",
@@ -110,6 +120,7 @@
     },
     "require-dev": {
         "drupal/coder": "^9.0",
+        "phpunit/phpunit": "^11",
         "squizlabs/php_codesniffer": "^4.0"
     }
 }
