@@ -8,11 +8,12 @@ A Drupal 11 project that accepts plain-language service requests, classifies the
 - [DDEV](https://ddev.com/get-started/)
 - An [Anthropic API key](https://console.anthropic.com/)
 
-## Quick start
+## First-time setup
 
 ```bash
 git clone <repo-url>
 cd drupal-ai
+composer install
 cp .ddev/config.local.yaml.example .ddev/config.local.yaml
 # Edit .ddev/config.local.yaml and add your Anthropic API key
 ddev start
@@ -21,6 +22,15 @@ ddev launch
 ```
 
 Log in with **admin / admin**.
+
+## Starting the project
+
+After the first-time setup, just:
+
+```bash
+ddev start
+ddev launch
+```
 
 ## Stopping the project
 
@@ -277,9 +287,23 @@ The core classification logic lives in `IntakeService`, which has no Drupal depe
 
 **Running the tests:**
 
+DDEV does not need to be running — the tests execute entirely on the host against plain PHP files.
+
 ```bash
+# Run the full suite
 vendor/bin/phpunit --testdox
+
+# Run only the service_intake group
+vendor/bin/phpunit --testdox --group service_intake
+
+# Run a single test class
+vendor/bin/phpunit --testdox web/modules/custom/service_intake/tests/src/Unit/IntakeServiceTest.php
+
+# Run a single test method
+vendor/bin/phpunit --testdox --filter testBoundaryConfidenceIsNotFlagged
 ```
+
+To stop a running test suite, press `Ctrl+C`.
 
 The test suite covers `parseResponse()` (valid JSON, markdown fence stripping, missing fields, malformed input) and `applyThreshold()` (boundary conditions, error payloads).
 
