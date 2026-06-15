@@ -38,6 +38,12 @@ ddev launch
 ddev stop
 ```
 
+This stops the `drupal-ai` containers but leaves DDEV's global router running (it is shared across all DDEV projects on your machine). To shut everything down completely:
+
+```bash
+ddev poweroff
+```
+
 ## Resetting to a clean state
 
 ```bash
